@@ -1,6 +1,6 @@
 //! Elliptic Curve Digital Signature Algorithm (ECDSA) private keys.
 
-use crate::{public::EcdsaPublicKey, Algorithm, EcdsaCurve, Error, Result};
+use crate::{Algorithm, EcdsaCurve, Error, Result, public::EcdsaPublicKey};
 use core::fmt;
 use encoding::{CheckedSum, Decode, Encode, Reader, Writer};
 use sec1::consts::{U32, U48, U66};
@@ -39,16 +39,31 @@ impl<const SIZE: usize> Decode for EcdsaPrivateKey<SIZE> {
 
     fn decode(reader: &mut impl Reader) -> Result<Self> {
         reader.read_prefixed(|reader| {
-            if reader.remaining_len() == SIZE.checked_add(1).ok_or(encoding::Error::Length)? {
-                // Strip leading zero
+            let mut len = reader.remaining_len();
+
+            // Strip leading zero if necessary:
+            // `mpint` is signed and may need a leading zero for unsigned integers
+            if len == SIZE.checked_add(1).ok_or(encoding::Error::Length)? {
                 // TODO(tarcieri): make sure leading zero was necessary
                 if u8::decode(reader)? != 0 {
                     return Err(Error::FormatEncoding);
                 }
+
+                len = SIZE;
             }
 
+            // Minimum allowed key size: may be smaller than modulus size
+            const MIN_SIZE: usize = 32;
+            if len < MIN_SIZE || len > SIZE {
+                return Err(encoding::Error::Length.into());
+            }
+
+            // Add leading zeros if the encoded key is smaller than `SIZE`.
+            // The resulting value is big endian and needs leading zero padding.
+            let leading_zeros = SIZE.checked_sub(len).ok_or(encoding::Error::Length)?;
+
             let mut bytes = [0u8; SIZE];
-            reader.read(&mut bytes)?;
+            reader.read(&mut bytes[leading_zeros..])?;
             Ok(Self { bytes })
         })
     }

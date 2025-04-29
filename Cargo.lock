@@ -428,36 +428,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "internal-russh-forked-ssh-key"
-version = "0.6.10+upstream-0.6.7"
-dependencies = [
- "argon2",
- "bcrypt-pbkdf",
- "dsa",
- "ecdsa",
- "ed25519-dalek",
- "hex",
- "hex-literal",
- "hmac",
- "num-bigint-dig",
- "p256",
- "p384",
- "p521",
- "rand_chacha",
- "rand_core",
- "rsa",
- "sec1",
- "serde",
- "sha1",
- "sha2",
- "signature",
- "ssh-cipher",
- "ssh-encoding",
- "subtle",
- "zeroize",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,6 +840,36 @@ dependencies = [
  "hex-literal",
  "pem-rfc7468",
  "sha2",
+]
+
+[[package]]
+name = "ssh-key"
+version = "0.6.8"
+dependencies = [
+ "argon2",
+ "bcrypt-pbkdf",
+ "dsa",
+ "ecdsa",
+ "ed25519-dalek",
+ "hex",
+ "hex-literal",
+ "hmac",
+ "num-bigint-dig",
+ "p256",
+ "p384",
+ "p521",
+ "rand_chacha",
+ "rand_core",
+ "rsa",
+ "sec1",
+ "serde",
+ "sha1",
+ "sha2",
+ "signature",
+ "ssh-cipher",
+ "ssh-encoding",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]

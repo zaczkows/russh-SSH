@@ -1,17 +1,17 @@
 //! SSH private key tests.
 
 use hex_literal::hex;
-use internal_russh_forked_ssh_key::{Algorithm, Cipher, KdfAlg, PrivateKey};
+use ssh_key::{Algorithm, Cipher, KdfAlg, PrivateKey};
 
 #[cfg(any(feature = "p256", feature = "p384", feature = "p521"))]
-use internal_russh_forked_ssh_key::EcdsaCurve;
+use ssh_key::EcdsaCurve;
 
 #[cfg(all(feature = "alloc"))]
-use internal_russh_forked_ssh_key::LineEnding;
+use ssh_key::LineEnding;
 
 #[cfg(all(feature = "std"))]
 use {
-    internal_russh_forked_ssh_key::PublicKey,
+    ssh_key::PublicKey,
     std::{io, path::PathBuf, process},
 };
 
@@ -86,10 +86,10 @@ const OPENSSH_RSA_4096_EXAMPLE: &str = include_str!("examples/id_rsa_4096");
 #[cfg(feature = "alloc")]
 const OPENSSH_OPAQUE_EXAMPLE: &str = include_str!("examples/id_opaque");
 
-/// OpenSSH-formatted private key with no internal or external padding, and no comment
-/// Trips a corner case in base64ct
-#[cfg(feature = "p384")]
-const OPENSSH_PADLESS_WONDER_EXAMPLE: &str = include_str!("examples/padless_wonder");
+// /// OpenSSH-formatted private key with no internal or external padding, and no comment
+// /// Trips a corner case in base64ct
+// #[cfg(feature = "p384")]
+// const OPENSSH_PADLESS_WONDER_EXAMPLE: &str = include_str!("examples/padless_wonder");
 
 /// Get a path into the `tests/scratch` directory.
 #[cfg(feature = "std")]
@@ -629,4 +629,40 @@ fn encoding_integration_test(private_key: PrivateKey) {
 
     // Ensure ssh-keygen successfully parsed our public key
     assert_eq!(&public_key, private_key.public_key());
+}
+
+#[cfg(all(feature = "alloc", feature = "p521"))]
+#[test]
+fn paramiko_ecdsa_key() {
+    let key_data = r#"-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNlY2RzYS
+1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQBf1mOQFzzGhb+5d4dEzPRbrHrrV+G
+ODWR5lOkdlhXpljXb/aPfFGD1RcsrD+WMo510xKHUN4MblVCa//W24EAwbAApVKdO2tte1
+72+L2JfNuaJWTU+7QfSWnCDqNFg+XIQSL3UN8nbgOl8Uqd+vF/Z6NqIhyVACLmsm5h3Z3c
+blUsh0gAAAEQpYZBIaWGQSEAAAATZWNkc2Etc2hhMi1uaXN0cDUyMQAAAAhuaXN0cDUyMQ
+AAAIUEAX9ZjkBc8xoW/uXeHRMz0W6x661fhjg1keZTpHZYV6ZY12/2j3xRg9UXLKw/ljKO
+ddMSh1DeDG5VQmv/1tuBAMGwAKVSnTtrbXte9vi9iXzbmiVk1Pu0H0lpwg6jRYPlyEEi91
+DfJ24DpfFKnfrxf2ejaiIclQAi5rJuYd2d3G5VLIdIAAAAQQ9lo6iDFKZNqcdQtVY5teUy
+2uAhY8gEm4tacIWp4k+PLPuz7l7fLe+V9JgZ6D32zoaVskogcJOXKw5fdF0D7VDUAAAAE3
+phY3prb3dzQGwtemFjemtvd3M=
+-----END OPENSSH PRIVATE KEY-----"#;
+
+    let key = PrivateKey::from_openssh(key_data);
+    assert!(key.is_ok());
+    let key = key.unwrap();
+    assert!(!key.is_encrypted());
+    assert_eq!(
+        key.algorithm(),
+        Algorithm::Ecdsa {
+            curve: EcdsaCurve::NistP521
+        }
+    );
+
+    let keypair_data = key.key_data().ecdsa().unwrap();
+    assert_eq!(
+        keypair_data.private_key_bytes(),
+        hex!(
+            "000f65a3a88314a64da9c750b55639b5e532dae02163c8049b8b5a7085a9e24f8f2cfbb3ee5edf2def95f49819e83df6ce8695b24a207093972b0e5f745d03ed50d4"
+        )
+    );
 }
